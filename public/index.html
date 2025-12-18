@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0ea5e9">
+    <title>SUZI | KOBEDENSHI AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: auto;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #e0f2fe 0%, #ffffff 100%);
+        }
+
+        #app {
+            min-height: 100vh;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+
+        .loading-dot {
+            animation: pulse 1.5s infinite;
+        }
+
+        .loading-dot:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+
+        .loading-dot:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+
+        @media (min-width: 768px) {
+            #app {
+                min-height: 90vh;
+                border-radius: 1rem;
+                overflow: hidden;
+            }
+        }
+    </style>
+</head>
+<body class="h-full flex items-center justify-center p-0">
+    <div id="app"
+         class="w-full h-screen flex flex-col bg-white
+                md:max-w-4xl md:mx-auto
+                shadow-2xl border border-slate-100">
+
+        <header class="h-16 px-4 flex items-center justify-between
+                       border-b bg-white sticky top-0 z-30 shadow-sm flex-shrink-0">
+
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 rounded-full bg-sky-500 flex items-center justify-center shadow-md flex-shrink-0 overflow-hidden border border-white">
+                    <img src="suzi-profile.png"
+                         alt="SUZI Profile Photo"
+                         class="w-full h-full object-cover p-1"
+                         onerror="this.onerror=null; this.src='https://placehold.co/40x40/0ea5e9/ffffff?text=AI';" />
+                </div>
+
+                <h1 class="text-base font-semibold tracking-tight text-gray-900 flex flex-col">
+                    SUZI
+                    <span class="text-xs text-slate-400 font-medium tracking-normal">KOBEDENSHI AI</span>
+                </h1>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <div id="google-login-wrapper" class="flex items-center">
+                    <button id="google-login-btn"
+                            class="text-xs bg-red-500 py-1.5 px-3 rounded-full font-medium text-white shadow-md hover:bg-red-600 whitespace-nowrap transition duration-150"
+                            title="Student Login">
+                        Login (Student)
+                    </button>
+                </div>
+
+                <button id="auth-toggle-btn"
+                        class="text-xs bg-gray-500 py-1.5 px-3 rounded-full font-medium text-white shadow-md transition hover:bg-gray-600 hidden whitespace-nowrap duration-150"
+                        title="Logout">
+                    Logout
+                </button>
+
+                <span id="status-badge" class="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium transition duration-200">
+                    Connecting...
+                </span>
+
+                <span id="user-info-status" class="text-xs text-slate-500 hidden whitespace-nowrap"></span>
+
+                <button id="menu-btn"
+                        class="h-10 w-10 text-gray-600 rounded-full flex items-center justify-center transition hover:bg-slate-100 hidden"
+                        title="Menu / Settings">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <div id="chat-messages"
+             class="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-slate-50">
+        </div>
+
+        <div id="chat-form"
+             class="p-3 flex items-center gap-2 bg-white sticky bottom-0 flex-shrink-0 border-t
+                    shadow-lg rounded-t-xl md:rounded-b-xl">
+
+            <input type="text" id="user-input" placeholder="Type your message..."
+                   class="flex-1 h-10 px-4 rounded-full bg-slate-100 focus:bg-white focus:ring-2 focus:ring-sky-500 border-none outline-none text-sm text-gray-800 transition duration-150"
+                   required autocomplete="off">
+
+            <button type="button" id="send-btn"
+                    class="h-10 w-10 rounded-full bg-sky-500 text-white flex items-center justify-center
+                           transition duration-150 hover:bg-sky-600 active:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                    title="Send Message">
+                <i data-lucide="send" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="memory-modal"
+         class="fixed inset-0 bg-black/40 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-xl shadow-xl p-6 w-80 space-y-4">
+            <h2 class="text-lg font-bold text-gray-800">User Memory</h2>
+            <p class="text-sm text-gray-600">
+                この操作は、この端末に保存されている SUZI の記憶を削除します。
+            </p>
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-memory-btn"
+                        class="px-4 py-2 text-sm rounded-lg bg-gray-200 hover:bg-gray-300 transition">
+                    Cancel
+                </button>
+                <button id="delete-memory-btn"
+                        class="px-4 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 transition">
+                    Delete Memory
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"
+         class="fixed top-4 left-1/2 -translate-x-1/2 z-50
+                hidden bg-white shadow-xl rounded-xl
+                px-4 py-3 flex items-center gap-3
+                border border-slate-200
+                transition-all duration-300">
+        <span class="text-sky-500">🔔</span>
+        <span id="toast-text" class="text-sm text-gray-800"></span>
+    </div>
+
+    <script type="module">
+   
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import {
+            getDatabase,
+            ref,
+            push
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        import {
+            getAuth, signInAnonymously, onAuthStateChanged, signOut,
+            GoogleAuthProvider,
+            signInWithPopup
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // Set up Lucide icons
+        window.onload = () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        };
+
+        const SYSTEM_PROMPT = `
+You are SUZI, the friendly and highly knowledgeable AI Assistant for KOBEDENSHI College (testing).
+
+IDENTITY & CREATOR
+- You are the official testing AI assistant for KOBEDENSHI College (神戸電子専門学校).
+- This specific application, SUZI, was created by Information Technology Department student
+  KYAW KHAING TUN (キョーカイーントン).
+- When asked "Who created you?" or similar, you MUST ONLY mention the student creator,
+  KYAW KHAING TUN. Do NOT mention Google, OpenAI, or any foundational model developer.
+
+DATA & CONTEXT (KOBEDENSHI CLOUD)
+- You receive real-time JSON data from the KOBEDENSHI cloud.
+- This JSON may contain:
+  - Live camera data (keys like "live_main_tower_3f", "live_hall", "live_entrance", "live_data", etc.)
+  - Announcements, events, schedules, or other system information.
+- You may also receive a [USER MEMORY] block, which summarizes the user's past interests. Use this to personalize your response and maintain context.
+
+YOUR RULES FOR USING JSON
+- You MUST treat the provided JSON as the ground truth for:
+  - What is happening now in each camera location.
+  - Current announcements, events, and system status.
+- You MUST NOT repeat the raw JSON back to the user.
+  - Read the JSON. Summarize it in clear, natural language.
+- If the JSON contains multiple locations, focus on relevant locations or give an overview.
+
+PRIVATE CLOUD RULES (NEW)
+- You may receive TWO cloud data sources in the context:
+  1) [KOBEDENSHI Public Cloud Data] (always available if connected)
+  2) [PRIVATE STUDENT CLOUD DATA – CONFIDENTIAL] (only when authenticated)
+
+- Private cloud data is CONFIDENTIAL.
+- If private data exists, prioritize it over public data for all related questions.
+- NEVER mention authentication, passwords, student login status, or cloud separation (Public/Private) to users.
+- If private data is missing, behave normally using public data only.
+
+LIVE CAMERA BEHAVIOR ("WHAT DO YOU SEE?")
+- If the user asks about the current view ("What do you see?", "今何が見える？") then you SHOULD:
+  - Use ONLY the live camera JSON provided in the context (keys like "live_*").
+  - Describe what is happening based on data.
+
+GENERAL ASSISTANT BEHAVIOR
+- Your primary role is to provide information, guidance, and assistance.
+
+LANGUAGE RULES
+- You are fully bilingual in English and Japanese.
+- Reply in the same language that the user used.
+- Be polite, friendly, and professional. For Japanese, use 丁寧語.
+
+LIMITATIONS
+- Explain that you cannot process image files if asked to analyze them.
+`;
+
+        const PUBLIC_CLOUD_URL = "https://cloud-2-9ndj.onrender.com";
+        const PRIVATE_CLOUD_URL = "https://cloud-1-gqld.onrender.com";
+
+        let collegeData = null;
+        let privateCollegeData = null;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDlTlmk3oj8ZWFU9vC70UX7dL9MCLWmy4Q",
+            authDomain: "suzi-831a8.firebaseapp.com",
+            databaseURL: "https://suzi-831a8-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "suzi-831a8",
+            storageBucket: "suzi-831a8.appspot.com",
+            messagingSenderId: "527210334104",
+            appId: "1:527210334104:web:89854b8d1e99db7ff40ded",
+            measurementId: "G-W9LXYG30DH"
+        };
+        
+        let auth;
+        let userId = null;
+        let userEmail = null;
+        let isStudentLoggedIn = false;
+
+        const ALLOWED_DOMAIN = "st.kobedenshi.ac.jp";
+
+        let chatHistory = [];
+        let INITIAL_BOT_TEXT = "";
+
+        const authToggleBtn = document.getElementById('auth-toggle-btn');
+        const googleLoginWrapper = document.getElementById('google-login-wrapper');
+        const googleLoginBtn = document.getElementById("google-login-btn");
+        const userInfoStatusSpan = document.getElementById('user-info-status');
+        const messagesContainer = document.getElementById('chat-messages');
+        const statusBadge = document.getElementById('status-badge');
+        const chatFormDiv = document.getElementById('chat-form');
+        const input = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const menuBtn = document.getElementById("menu-btn");
+        const memoryModal = document.getElementById("memory-modal");
+        const deleteMemoryBtn = document.getElementById("delete-memory-btn");
+        const cancelMemoryBtn = document.getElementById("cancel-memory-btn");
+
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            const text = document.getElementById("toast-text");
+
+            text.textContent = message;
+            toast.classList.remove("hidden");
+
+            toast.style.opacity = "1";
+            toast.style.transform = "translate(-50%, 0)";
+
+            setTimeout(() => {
+                toast.style.opacity = "0";
+                toast.style.transform = "translate(-50%, -10px)";
+                setTimeout(() => toast.classList.add("hidden"), 300);
+            }, 3000);
+        }
+
+        function addReminderConfirm(eventText, eventTimeISO) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "flex gap-2 mt-2";
+
+            const yesBtn = document.createElement("button");
+            yesBtn.textContent = "Yes, remind me";
+            yesBtn.className = "px-3 py-1 bg-sky-500 text-white rounded-full text-sm";
+
+            const noBtn = document.createElement("button");
+            noBtn.textContent = "No";
+            noBtn.className = "px-3 py-1 bg-gray-300 rounded-full text-sm";
+
+            yesBtn.onclick = () => {
+                addReminderOptions(eventText, eventTimeISO);
+                wrapper.remove();
+            };
+
+            noBtn.onclick = () => wrapper.remove();
+
+            wrapper.append(yesBtn, noBtn);
+            messagesContainer.appendChild(wrapper);
+        }
+
+        function addReminderOptions(eventText, eventTimeISO) {
+            const box = document.createElement("div");
+            box.className = "bg-white p-3 rounded-xl shadow mt-2";
+
+            box.innerHTML = `
+                <p class="text-sm font-medium mb-2">When should I remind you?</p>
+                <label class="block text-sm">
+                    <input type="checkbox" id="morning"> Morning of that day
+                </label>
+                <label class="block text-sm">
+                    <input type="checkbox" id="onehour"> 1 hour before
+                </label>
+                <button class="mt-2 px-3 py-1 bg-green-500 text-white rounded">
+                    Save reminder
+                </button>
+            `;
+
+            box.querySelector("button").onclick = () => {
+                saveReminder(
+                    eventText,
+                    eventTimeISO,
+                    document.getElementById("morning").checked,
+                    
+                    
+                    document.getElementById("onehour").checked
+                );
+                box.remove();
+            };
+
+            messagesContainer.appendChild(box);
+        }
+
+       async function saveReminder(text, timeISO, morning, oneHour) {
+  if (!userEmail) return;
+
+  // 1️⃣ Save to Firebase (keep this)
+  const safeEmail = userEmail.replace(/\./g, "_");
+  const reminderRef = ref(window._suziDB, `reminders/${safeEmail}`);
+
+  await push(reminderRef, {
+    text,
+    timeISO,
+    morning,
+    oneHour,
+    createdAt: Date.now()
+  });
+
+  // 2️⃣ Send to Render server for LINE
+  await fetch("/api/reminder", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    email: userEmail,
+    text,
+    timeISO
+  })
+});
+
+
+  showToast("🔔 LINE reminder scheduled (time will be confirmed later)");
+
+}
+
+        function addMessage(text, role, originalBotText = null) {
+            const messageWrapper = document.createElement('div');
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'flex flex-col';
+
+            const messageContent = document.createElement('div');
+
+            let formattedText = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/^- (.*)/gm, '<li>$1</li>')
+                .replace(/\n/g, '<br>');
+
+            if (formattedText.includes('<li>') && !formattedText.includes('<ul>')) {
+                formattedText = '<ul>' + formattedText + '</ul>';
+            }
+
+            if (role === 'user') {
+                messageWrapper.className = 'flex justify-end';
+                messageContent.className = 'py-2 px-4 rounded-xl rounded-br-md shadow-md max-w-[85%] text-white';
+                messageContent.style.background = 'linear-gradient(135deg, #0ea5e9, #0284c7)';
+            } else {
+                messageWrapper.className = 'flex justify-start';
+                messageContent.className = 'py-2 px-4 rounded-xl rounded-tl-md shadow-sm max-w-[85%] text-gray-800 border border-gray-200 bg-white';
+            }
+
+            messageContent.innerHTML = formattedText;
+
+            contentWrapper.prepend(messageContent);
+            messageWrapper.appendChild(contentWrapper);
+            messagesContainer.appendChild(messageWrapper);
+
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            return messageContent;
+        }
+
+        function addLoadingIndicator(isSummary = false) {
+            const loadingWrapper = document.createElement('div');
+            loadingWrapper.className = 'flex justify-start';
+            loadingWrapper.id = 'loading-indicator';
+
+            const mtClass = isSummary ? 'mt-1' : '';
+
+            const loadingContent = document.createElement('div');
+            loadingContent.className = `py-2 px-4 rounded-xl rounded-tl-md shadow-sm max-w-[85%] text-gray-800 border border-gray-200 bg-white flex space-x-1 ${mtClass}`;
+
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('span');
+                dot.className = 'loading-dot w-2 h-2 bg-sky-600 rounded-full';
+                dot.style.animationDelay = `${i * 0.3}s`;
+                loadingContent.appendChild(dot);
+            }
+
+            loadingWrapper.appendChild(loadingContent);
+            messagesContainer.appendChild(loadingWrapper);
+
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            return loadingWrapper;
+        }
+
+        function removeLoadingIndicator(indicatorElement) {
+            if (indicatorElement) {
+                indicatorElement.remove();
+            }
+        }
+
+        async function fetchWithRetry(url, options, retries = 0) {
+            const CHAT_ENDPOINT = "/api/chat";
+            const MAX_RETRIES = 5;
+
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    if (url.startsWith(CHAT_ENDPOINT) && response.status === 500) {
+                        const errorBody = await response.json();
+                        throw new Error(`Proxy Server Error: ${errorBody.error || 'Unknown error'}`);
+                    }
+
+                    if (response.status === 429 && retries < MAX_RETRIES) {
+                        const delay = Math.pow(2, retries) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return fetchWithRetry(url, options, retries + 1);
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response;
+            } catch (error) {
+                if (retries < MAX_RETRIES) {
+                    const delay = Math.pow(2, retries) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithRetry(url, options, retries + 1);
+                }
+                throw error;
+            }
+        }
+
+        function saveUserMemoryByEmail(email, summaryText) {
+            if (!email) return;
+
+            const key = `suzi_memory_email_${email}`;
+
+            const memory = {
+                email,
+                lastUpdated: new Date().toISOString(),
+                summary: summaryText
+            };
+
+            localStorage.setItem(key, JSON.stringify(memory));
+            console.log("🧠 Memory saved for:", email);
+        }
+
+        function loadUserMemoryByEmail(email) {
+            if (!email) return null;
+
+            const key = `suzi_memory_email_${email}`;
+            const raw = localStorage.getItem(key);
+
+            if (!raw) return null;
+
+            try {
+                return JSON.parse(raw);
+            } catch {
+                return null;
+            }
+        }
+
+        function deleteUserMemoryByEmail(email) {
+            if (!email) return;
+
+            const key = `suzi_memory_email_${email}`;
+            localStorage.removeItem(key);
+
+            console.log("🗑 Memory deleted for:", email);
+        }
+
+        menuBtn.addEventListener("click", () => {
+            memoryModal.classList.remove("hidden");
+        });
+
+        cancelMemoryBtn.addEventListener("click", () => {
+            memoryModal.classList.add("hidden");
+        });
+
+        deleteMemoryBtn.addEventListener("click", () => {
+            deleteUserMemoryByEmail(userEmail);
+
+            chatHistory = [{
+                role: "model",
+                parts: [{ text: INITIAL_BOT_TEXT }]
+            }];
+
+            messagesContainer.innerHTML = "";
+
+            addMessage(
+                "🧠 記憶を削除しました。これから新しく会話を始めます。",
+                "bot"
+            );
+            addMessage(INITIAL_BOT_TEXT, 'bot');
+
+            memoryModal.classList.add("hidden");
+        });
+
+        async function summarizeConversationForMemory(chatHistory) {
+            const conversationText = chatHistory
+                .filter(m => m.role === "user" || m.role === "model")
+                .map(m => m.parts?.[0]?.text || "")
+                .join("\n");
+
+            const summaryPrompt = `
+Summarize the following conversation into a SHORT user memory.
+Focus on:
+- What the user is interested in (e.g., "The user is interested in the IT major and asking about class schedules.")
+- Repeated topics
+- User preferences
+
+Do NOT include greetings or system messages. Only provide the summary text.
+
+Conversation:
+${conversationText}
+`;
+
+            const payload = {
+                contents: [
+                    { role: "user", parts: [{ text: summaryPrompt }] }
+                ]
+            };
+
+            const CHAT_ENDPOINT = "/api/chat";
+
+            try {
+                const response = await fetch(CHAT_ENDPOINT, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.json();
+                    throw new Error(`Summary API error! Status: ${response.status}. Error: ${errorBody.error || 'Unknown'}`);
+                }
+
+                const result = await response.json();
+                return result?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+            } catch (e) {
+                console.error("Summarization failed:", e);
+                return null;
+            }
+        }
+
+        function updateStatusBadge() {
+            const isPublicOnline = collegeData !== null;
+            const isPrivateOnline = isStudentLoggedIn && privateCollegeData !== null;
+
+            statusBadge.className = "flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium transition duration-200";
+
+            let icon = '';
+            let text = '';
+
+            if (isPrivateOnline) {
+                text = 'Private Cloud';
+                icon = '<i data-lucide="shield" class="w-3 h-3"></i>';
+                statusBadge.classList.add('bg-indigo-100', 'text-indigo-700');
+            } else if (isPublicOnline) {
+                text = 'Cloud Online';
+                icon = '<i data-lucide="cloud" class="w-3 h-3"></i>';
+                statusBadge.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                text = 'Cloud Offline';
+                icon = '<i data-lucide="cloud-off" class="w-3 h-3"></i>';
+                statusBadge.classList.add('bg-red-100', 'text-red-700');
+            }
+
+            statusBadge.innerHTML = icon + text;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        async function fetchPrivateCloudData() {
+            if (!isStudentLoggedIn) {
+                privateCollegeData = null;
+                updateStatusBadge();
+                return;
+            }
+
+            const DATA_ENDPOINT = `${PRIVATE_CLOUD_URL}/all_json`;
+            const PRIVATE_KEY_PLACEHOLDER = 'watson-extended-mortality-key-29837';
+
+            try {
+                const response = await fetchWithRetry(DATA_ENDPOINT, {
+                    method: 'GET',
+                    headers: {
+                        "X-STUDENT-KEY": PRIVATE_KEY_PLACEHOLDER
+                    }
+                });
+                privateCollegeData = await response.json();
+
+                console.log("🔐 Private cloud loaded:", privateCollegeData);
+
+                addMessage(
+                    "🔐 **Private cloud data loaded successfully.** 学生専用データが有効になりました。",
+                    "bot"
+                );
+            } catch (error) {
+                console.error("Private cloud failed:", error);
+                privateCollegeData = null;
+
+                addMessage(
+                    "⚠️ **Private cloud is unavailable.** 公開クラウドのみを使用します。",
+                    "bot"
+                );
+            }
+            updateStatusBadge();
+        }
+
+        async function fetchCloudData() {
+            const DATA_ENDPOINT = `${PUBLIC_CLOUD_URL}/all_json`;
+
+            statusBadge.innerHTML = 'Connecting...';
+            statusBadge.className = "flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium transition duration-200 bg-gray-100 text-gray-700";
+
+            try {
+                const response = await fetchWithRetry(DATA_ENDPOINT, { method: 'GET' });
+                const data = await response.json();
+                collegeData = data;
+
+                console.log("Cloud data fetched successfully:", collegeData);
+
+                const infoMessage = `<i data-lucide="cloud-check" class="w-4 h-4 inline mr-1 text-green-600"></i> SUZI has successfully loaded real-time data from the KOBEDENSHI Cloud System. All available data will be used to answer your questions. <br>SUZIは神戸電子のクラウドシステムからリアルタイムデータの読み込みに成功しました。すべての利用可能なデータが質問への回答に使用されます。`;
+                addMessage(infoMessage, 'bot');
+
+            } catch (error) {
+                console.error("Failed to fetch cloud data:", error);
+
+                const errorMessage = `<i data-lucide="cloud-off" class="w-4 h-4 inline mr-1 text-red-600"></i> Alert: SUZI failed to load real-time data from the KOBEDENSHI cloud system. Answers may not reflect the absolute latest information.`;
+                addMessage(errorMessage, 'bot');
+            }
+            updateStatusBadge();
+        }
+
+        function updateAuthUI() {
+            if (isStudentLoggedIn) {
+                googleLoginWrapper.classList.add('hidden');
+                authToggleBtn.classList.remove('hidden');
+                authToggleBtn.textContent = 'Logout';
+                authToggleBtn.disabled = false;
+                menuBtn.classList.remove("hidden");
+
+                if (userInfoStatusSpan) {
+                    userInfoStatusSpan.classList.remove('hidden');
+                    const displayId = userEmail ? userEmail : (userId ? `${userId.substring(0, 8)}...` : 'Unknown');
+                    userInfoStatusSpan.textContent = `User: ${displayId} (Student)`;
+                }
+
+            } else {
+                googleLoginWrapper.classList.remove('hidden');
+                authToggleBtn.classList.add('hidden');
+                authToggleBtn.disabled = true;
+                menuBtn.classList.add("hidden");
+
+                if (userInfoStatusSpan) {
+                    if (userId) {
+                        userInfoStatusSpan.textContent = `User: ${userId.substring(0, 8)}... (Public)`;
+                    } else {
+                        userInfoStatusSpan.textContent = 'Auth Loading...';
+                    }
+                    userInfoStatusSpan.classList.remove('hidden');
+                }
+            }
+            updateStatusBadge();
+        }
+
+        function initFirebase() {
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase config is empty. Auth disabled.");
+                googleLoginBtn.disabled = true;
+                googleLoginBtn.textContent = 'Auth Disabled';
+                if (userInfoStatusSpan) userInfoStatusSpan.textContent = 'Auth Disabled';
+                return;
+            }
+
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            const db = getDatabase(app);
+            window._suziDB = db;
+
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    userId = null;
+                    userEmail = null;
+                    isStudentLoggedIn = false;
+                    updateAuthUI();
+                    return;
+                }
+
+                userId = user.uid;
+                const email = user.email || "";
+                const domain = email.split("@")[1];
+
+                if (domain !== ALLOWED_DOMAIN) {
+                    await signOut(auth);
+                    isStudentLoggedIn = false;
+                    userEmail = null;
+
+                    addMessage(
+                        "❌ 学生アカウントではありません。ログアウトしました。",
+                        "bot"
+                    );
+                    updateAuthUI();
+                    return;
+                }
+
+                isStudentLoggedIn = true;
+                localStorage.setItem("student_logged_in", "true");
+                userEmail = user.email;
+
+                updateAuthUI();
+                fetchPrivateCloudData();
+
+                const memory = loadUserMemoryByEmail(userEmail);
+                if (memory?.summary) {
+                    addMessage(
+                        `🧠 **おかえりなさい。** 以前の会話を覚えています。\n\n${memory.summary}`,
+                        "bot"
+                    );
+                }
+            });
+
+            if (!auth.currentUser) {
+                signInAnonymously(auth).catch(e => {
+                    console.error("Anonymous sign-in failed.", e);
+                });
+            }
+
+            googleLoginBtn.addEventListener("click", async () => {
+                const provider = new GoogleAuthProvider();
+
+                try {
+                    const result = await signInWithPopup(auth, provider);
+                    const user = result.user;
+
+                    const email = user.email || "";
+                    const domain = email.split("@")[1];
+
+                    if (domain !== ALLOWED_DOMAIN) {
+                        await signOut(auth);
+                        isStudentLoggedIn = false;
+                        userEmail = null;
+                        updateAuthUI();
+
+                        addMessage(
+                            "❌ このGoogleアカウントは学生用ではありません。\n@st.kobedenshi.ac.jp のみ使用できます。",
+                            "bot"
+                        );
+                        return;
+                    }
+
+                    isStudentLoggedIn = true;
+                    localStorage.setItem("student_logged_in", "true");
+                    userEmail = user.email;
+
+                    addMessage(
+                        `🎓 学生ログイン成功！\n${email} で認証されました。`,
+                        "bot"
+                    );
+                    await fetch("/api/link-line", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email: userEmail })
+});addMessage("🔗 LINE account linked successfully", "bot");
+
+                    
+
+                } catch (error) {
+                    console.error("Google login failed:", error);
+                    addMessage("⚠️ Googleログインに失敗しました。", "bot");
+                    userEmail = null;
+                }
+            });
+
+            authToggleBtn.addEventListener('click', async () => {
+                isStudentLoggedIn = false;
+                privateCollegeData = null;
+                localStorage.removeItem("student_logged_in");
+                userEmail = null;
+
+                try {
+                    await signOut(auth);
+                    await signInAnonymously(auth);
+
+                    addMessage(
+                        "🚪 ログアウトしました。公開クラウドのみを使用します。",
+                        "bot"
+                    );
+                } catch (e) {
+                    console.error("Logout failed, trying anonymous sign-in fallback:", e);
+                    signInAnonymously(auth);
+                    addMessage("Logout failed, but connection was maintained.", 'bot');
+                }
+
+                updateAuthUI();
+            });
+
+            updateAuthUI();
+        }
+
+        function buildCloudContext(query) {
+            let context = "";
+
+            if (isStudentLoggedIn && userEmail) {
+                const memory = loadUserMemoryByEmail(userEmail);
+                if (memory?.summary) {
+                    context += `
+[USER MEMORY]
+${memory.summary}
+`;
+                }
+            }
+
+            const publicLiveKeys = Object.keys(collegeData || {}).filter(k => k.startsWith("live_"));
+
+            if (publicLiveKeys.length > 0) {
+                const publicLiveData = {};
+                publicLiveKeys.forEach(k => publicLiveData[k] = collegeData[k]);
+
+                context += `
+[KOBEDENSHI Public Cloud Data - Live]
+${JSON.stringify(publicLiveData, null, 2)}
+`;
+            }
+
+            if (collegeData?.announcements) {
+                context += `
+[KOBEDENSHI Public Cloud Data - Announcements]
+${JSON.stringify(collegeData.announcements, null, 2)}
+`;
+            }
+
+            const privateLiveKeys = Object.keys(privateCollegeData || {}).filter(k => k.startsWith("live_"));
+
+            if (isStudentLoggedIn && privateLiveKeys.length > 0) {
+                const privateLiveData = {};
+                privateLiveKeys.forEach(k => privateLiveData[k] = privateCollegeData[k]);
+
+                context += `
+[PRIVATE STUDENT CLOUD DATA – CONFIDENTIAL - Live]
+${JSON.stringify(privateLiveData, null, 2)}
+`;
+            }
+
+            if (isStudentLoggedIn && privateCollegeData?.announcements) {
+                context += `
+[PRIVATE STUDENT CLOUD DATA – CONFIDENTIAL - Announcements]
+${JSON.stringify(privateCollegeData.announcements, null, 2)}
+`;
+            }
+
+            return context.trim();
+        }
+
+        async function handleChatSubmission(userQuery) {
+            const trimmedQuery = userQuery.trim();
+            if (!trimmedQuery) return;
+
+            input.disabled = true;
+            sendBtn.disabled = true;
+            input.value = '';
+
+            const normalizedQuery = trimmedQuery.toLowerCase();
+
+            const timePatterns = [
+                "what time is it", "what time it is", "今何時",
+                "今何時ですか", "いまなんじ", "いまなんじですか"
+            ];
+
+            const matchedTimeQuestion = timePatterns.some(p => normalizedQuery.includes(p.toLowerCase()));
+
+            if (matchedTimeQuestion) {
+                addMessage(trimmedQuery, 'user');
+                const now = new Date();
+                const optionsDate = { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Tokyo" };
+                const optionsTime = { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Tokyo" };
+                const optionsTimeJa = { hour: "numeric", minute: "2-digit", timeZone: "Asia/Tokyo" };
+
+                const dateStr = now.toLocaleDateString("en-US", optionsDate);
+                const timeStr = now.toLocaleTimeString("en-US", optionsTime);
+                const timeStrJa = now.toLocaleTimeString("ja-JP", optionsTimeJa);
+
+                const reply = `
+The current local time at KOBEDENSHI College (Kobe, Japan) is **${timeStr}** on **${dateStr}** (Japan Standard Time, JST).
+
+現在の神戸電子専門学校（日本・神戸）の時刻は **${timeStrJa}（日本時間）** です。
+                `.trim();
+
+                addMessage(reply, 'bot');
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+                return;
+            }
+
+            addMessage(trimmedQuery, 'user');
+            const loadingIndicator = addLoadingIndicator();
+
+            const contextPrompt = buildCloudContext(trimmedQuery);
+            const fullUserMessage = contextPrompt + (contextPrompt ? "\n\n" : "") + "User Query: " + trimmedQuery;
+
+            const MAX_HISTORY_MESSAGES = 20;
+            if (chatHistory.length > MAX_HISTORY_MESSAGES) {
+                chatHistory = [chatHistory[0], ...chatHistory.slice(-(MAX_HISTORY_MESSAGES - 1))];
+            }
+
+            chatHistory.push({
+                role: "user",
+                parts: [{ text: fullUserMessage }]
+            });
+
+            const payload = {
+                contents: chatHistory,
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: SYSTEM_PROMPT }]
+                },
+            };
+
+            let success = false;
+            try {
+                const response = await fetch(
+                    '/api/chat',
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    }
+                );
+
+                const result = await response.json();
+
+                if (!response.ok || result.error) {
+                    removeLoadingIndicator(loadingIndicator);
+                    const errorMessage = result.error?.message || "An unknown proxy/server error occurred.";
+                    addMessage(`❌ AI Error: ${errorMessage}`, "bot");
+                    chatHistory.pop();
+                } else if (
+                    result.candidates &&
+                    result.candidates.length > 0 &&
+                    result.candidates[0].content?.parts?.length > 0
+                ) {
+                    const aiText = result.candidates[0].content.parts[0].text;
+
+                    chatHistory.push({
+                        role: "model",
+                        parts: [{ text: aiText }]
+                    });
+
+                    removeLoadingIndicator(loadingIndicator);
+                    addMessage(aiText, "bot");
+
+                    const scheduleKeywords = ["exam", "test", "class", "meeting", "tomorrow", "am", "pm"];
+
+                    if (scheduleKeywords.some(k => trimmedQuery.toLowerCase().includes(k))) {
+                        const fakeISO = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+                        addReminderConfirm(aiText, fakeISO);
+                    }
+
+                    showToast("SUZI replied to your message");
+                    success = true;
+                } else {
+                    removeLoadingIndicator(loadingIndicator);
+                    addMessage("⚠️ AI returned no response or the format was unexpected.", "bot");
+                    chatHistory.pop();
+                }
+
+                if (isStudentLoggedIn && success && userEmail) {
+                    const newSummary = await summarizeConversationForMemory(chatHistory);
+                    if (newSummary) {
+                        saveUserMemoryByEmail(userEmail, newSummary);
+                    }
+                }
+
+            } catch (error) {
+                removeLoadingIndicator(loadingIndicator);
+                addMessage(`❌ Network error: ${error.message}`, "bot");
+                chatHistory.pop();
+            }
+
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+        }
+
+        function initChatbot() {
+            INITIAL_BOT_TEXT = `Hello! I am SUZI, the testing AI assistant for KOBEDENSHI College. I can speak both English and Japanese, and I can access real-time cloud data. How can I help you today?
+<br><br>こんにちは！私は SUZI（スージー） です。
+神戸電子専門学校（KOBEDENSHI）のテスティングAIアシスタントです。
+<br><br>英語と日本語の2か国語で話すことができ、クラウドからのリアルタイムデータも読み取ることができます。
+<br><br>本日は、どのようにお手伝いしましょうか？ ✨`;
+
+            chatHistory = [{
+                role: "model",
+                parts: [{ text: INITIAL_BOT_TEXT }]
+            }];
+
+            addMessage(INITIAL_BOT_TEXT, 'bot');
+
+            initFirebase();
+            fetchCloudData();
+
+            sendBtn.addEventListener('click', async () => {
+                await handleChatSubmission(input.value.trim());
+            });
+
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleChatSubmission(input.value.trim());
+                }
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initChatbot);
+        } else {
+            initChatbot();
+        }
+
+        // Register Service Worker for PWA
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("./sw.js").catch(err => {
+                console.log("Service Worker registration failed:", err);
+            });
+        }
+    </script>
+</body>
+</html>
