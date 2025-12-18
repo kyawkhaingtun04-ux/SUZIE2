@@ -684,11 +684,7 @@ ${conversationText}
                 authToggleBtn.disabled = false;
                 menuBtn.classList.remove("hidden");
 
-                if (userInfoStatusSpan) {
-                    userInfoStatusSpan.classList.remove('hidden');
-                    const displayId = userEmail ? userEmail : (userId ? `${userId.substring(0, 8)}...` : 'Unknown');
-                    userInfoStatusSpan.textContent = `User: ${displayId} (Student)`;
-                }
+                
 
             } else {
                 googleLoginWrapper.classList.remove('hidden');
@@ -698,7 +694,6 @@ ${conversationText}
 
                 if (userInfoStatusSpan) {
                     
-                    userInfoStatusSpan.classList.remove('hidden');
                 }
             }
             updateStatusBadge();
